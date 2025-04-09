@@ -3,8 +3,17 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MarkerFormScreen extends StatefulWidget {
   final LatLng position;
+  final bool isEditing;
+  final String? initialTitle;
+  final String? initialDescription;
 
-  const MarkerFormScreen({Key? key, required this.position}) : super(key: key);
+  const MarkerFormScreen({
+    Key? key,
+    required this.position,
+    required this.isEditing,
+    this.initialTitle,
+    this.initialDescription,
+  }) : super(key: key);
 
   @override
   _MarkerFormScreenState createState() => _MarkerFormScreenState();
@@ -17,6 +26,15 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.isEditing) {
+      _titleController.text = widget.initialTitle ?? '';
+      _descriptionController.text = widget.initialDescription ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
@@ -26,10 +44,8 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
-
-      // Simulamos un pequeño retardo para mostrar el estado de carga
       await Future.delayed(const Duration(milliseconds: 500));
-
+      
       if (mounted) {
         Navigator.pop(context, {
           'title': _titleController.text.trim(),
@@ -45,7 +61,7 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuevo Marcador'),
+        title: Text(widget.isEditing ? 'Editar Marcador' : 'Nuevo Marcador'),
         centerTitle: true,
         elevation: 0,
       ),
@@ -56,7 +72,6 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Coordenadas
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -72,30 +87,26 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,
-                          fontFamily: 'McLaren'
+                          fontFamily: 'McLaren',
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Lat: ${widget.position.latitude.toStringAsFixed(6)}',
-                        style: theme.textTheme.bodyMedium,
                       ),
                       Text(
                         'Lng: ${widget.position.longitude.toStringAsFixed(6)}',
-                        style: theme.textTheme.bodyMedium,
                       ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Campo de título
               TextFormField(
                 controller: _titleController,
                 decoration: InputDecoration(
-                  labelText: 'Nombre:',
-                  hintText: 'Ej: Lugar preferido',
+                  labelText: 'Título',
+                  hintText: 'Ej: Mi lugar favorito',
                   prefixIcon: const Icon(Icons.title),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -103,26 +114,23 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
                   filled: true,
                   fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.4),
                 ),
-                style: theme.textTheme.bodyLarge,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Ingresa un título';
+                    return 'Por favor ingresa un título';
                   }
                   if (value.trim().length > 50) {
-                    return 'Cant.Máx: 50 caracteres';
+                    return 'Máximo 50 caracteres';
                   }
                   return null;
                 },
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),
-
-              // Campo de descripción
               TextFormField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
-                  labelText: 'Descripción de la ubicación:',
-                  hintText: 'Ej: Es muy lindo',
+                  labelText: 'Descripción',
+                  hintText: 'Ej: Un lugar especial para...',
                   prefixIcon: const Icon(Icons.description),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -130,25 +138,22 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
                   filled: true,
                   fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.4),
                 ),
-                style: theme.textTheme.bodyLarge,
                 maxLines: 3,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Ingresa una descripción';
+                    return 'Por favor ingresa una descripción';
                   }
                   if (value.trim().length > 200) {
-                    return 'Cant.Max: 200 caracteres';
+                    return 'Máximo 200 caracteres';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 32),
-
-              // Botón de guardar
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitForm,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 132, 21, 192),
+                  backgroundColor: Colors.blue[800],
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -156,25 +161,44 @@ class _MarkerFormScreenState extends State<MarkerFormScreen> {
                   ),
                   elevation: 2,
                 ),
-                child:
-                    _isSubmitting
-                        ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                        : const Text(
-                          'Guardar',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'McLaren',
-                          ),
+                child: _isSubmitting
+                    ? const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      )
+                    : Text(
+                        widget.isEditing ? 'Actualizar' : 'Guardar',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'McLaren',
                         ),
+                      ),
               ),
+              if (widget.isEditing) ...[
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: Colors.grey.shade400),
+                  ),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                      fontFamily: 'McLaren',
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
